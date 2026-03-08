@@ -1,0 +1,22 @@
+{
+  "name": "Love Slot: Maira & Mauri",
+  "short_name": "Love Slot",
+  "description": "A romantic slot machine game for Maira & Mauri",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d0208",
+  "theme_color": "#ff007f",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/icons/png?icon=heart&backgroundColor=ff007f&size=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.dicebear.com/7.x/icons/png?icon=heart&backgroundColor=ff007f&size=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
