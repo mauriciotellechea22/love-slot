@@ -18,7 +18,13 @@ const frasesRomanticas = [
 const premiosRomanticos = [
   "Vale por un masaje de pies", "Cena romántica esta noche", "Vale por un beso apasionado",
   "Día de spa en casa", "Tú eliges la película hoy", "Desayuno en la cama",
-  "Paseo bajo las estrellas", "Vale por un abrazo de oso", "Postre favorito garantizado"
+  "Paseo bajo las estrellas", "Vale por un abrazo de oso", "Postre favorito garantizado",
+  "Vale por una salida al cine", "Cena cocinada por mí", "Tarde de maratón de series",
+  "Vale por un helado gigante", "Masaje en la espalda de 20 min", "Una carta de amor mano a mano",
+  "Un día sin quehaceres", "Tú decides qué comida pedir hoy", "Picnic romántico improvisado",
+  "Desayuno sorpresa el fin de semana", "Paseo de compras juntos", "Elegir la música todo el día",
+  "Noche de juegos de mesa/videojuegos", "Sesión de fotos tonta de los dos", "Vale por tu golosina favorita",
+  "Te invito un café/merienda", "Tarde de abrazos en el sillón", "Caminar tomados de la mano un buen rato"
 ];
 const tareasMairaRomanticas = [
   "Déjale una nota de amor escondida", "Dale un beso robado", "Prepárale su snack favorito",
@@ -38,7 +44,14 @@ const frasesPicantes = [
 const premiosPicantes = [
   "Masaje con aceite caliente", "Juego de roles esta noche", "Beso en todo el cuerpo",
   "Striptease privado", "Tú mandas en la cama hoy", "Ducha juntos",
-  "Vale por un 'rapidito'", "Noche de juguetes", "Cumplir una fantasía"
+  "Vale por un 'rapidito'", "Noche de juguetes", "Cumplir una fantasía secreta",
+  "Sexo oral completo", "Masaje erótico super lento y largo", "Besos en cada rincón prohibido",
+  "Hazme lo que quieras por 30 min", "Hacerlo en una parte de la casa nueva",
+  "Posición sexual sorpresa (tú decides)", "Sesión de 'dirty talk' intenso",
+  "Atado/a o vendado/a en la cama", "Juego previo suuuuper largo garantizado",
+  "Usar crema o hielo", "Permiso para grabar un video candente",
+  "Mañanero salvaje garantizado", "Vale por un oral cuando y donde quieras",
+  "Dominar por completo esta noche", "Noche sin nada de ropa para dormir"
 ];
 const tareasMairaPicantes = [
   "Mándale una foto sugerente ahora", "Susúrrale al oído qué le harás hoy", "Bésale el cuello provocativamente",
@@ -89,7 +102,7 @@ export default function App() {
   const [isSpicy, setIsSpicy] = useState(false);
   const [appData, setAppData] = useState<AppData | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
-  
+
   // Modals
   const [modalType, setModalType] = useState<'result' | 'history' | null>(null);
   const [modalContent, setModalContent] = useState<any>(null);
@@ -105,10 +118,10 @@ export default function App() {
   useEffect(() => {
     const data = localStorage.getItem('loveSlotDataV3');
     const today = new Date().toDateString();
-    
-    let parsed: AppData = data ? JSON.parse(data) : { 
-      date: today, Maira: MAX_SPINS, Mauri: MAX_SPINS, 
-      streak: 1, lastPlayDate: today, history: [], lastWeekly: null 
+
+    let parsed: AppData = data ? JSON.parse(data) : {
+      date: today, Maira: MAX_SPINS, Mauri: MAX_SPINS,
+      streak: 1, lastPlayDate: today, history: [], lastWeekly: null
     };
 
     // Lógica de cambio de día y racha
@@ -116,7 +129,7 @@ export default function App() {
       const lastDate = new Date(parsed.date);
       const currentDate = new Date(today);
       const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
         parsed.streak += 1; // Jugó días consecutivos
@@ -128,7 +141,7 @@ export default function App() {
       parsed.Maira = MAX_SPINS;
       parsed.Mauri = MAX_SPINS;
     }
-    
+
     setAppData(parsed);
     localStorage.setItem('loveSlotDataV3', JSON.stringify(parsed));
   }, []);
@@ -151,22 +164,22 @@ export default function App() {
       root.style.setProperty('--active-color', 'var(--mauri-color)');
       root.style.setProperty('--active-glow', 'var(--mauri-glow)');
     }
-    
+
     // Update initial reel text if not spinning
     if (!isSpinning && reel1Ref.current && reel2Ref.current) {
-        // Only update if empty or static content
-        if (!reel1Ref.current.querySelector('.reel-strip')) {
-            reel1Ref.current.innerHTML = `<div class="reel-item">${isSpicy ? frasesPicantes[0] : frasesRomanticas[0]}</div>`;
-            reel2Ref.current.innerHTML = `<div class="reel-item">${isSpicy ? premiosPicantes[0] : premiosRomanticos[0]}</div>`;
-        }
+      // Only update if empty or static content
+      if (!reel1Ref.current.querySelector('.reel-strip')) {
+        reel1Ref.current.innerHTML = `<div class="reel-item">${isSpicy ? frasesPicantes[0] : frasesRomanticas[0]}</div>`;
+        reel2Ref.current.innerHTML = `<div class="reel-item">${isSpicy ? premiosPicantes[0] : premiosRomanticos[0]}</div>`;
+      }
     }
   }, [currentPlayer, isSpicy, isSpinning]);
 
   // Initial Reel Setup
   useEffect(() => {
-      if (reel3Ref.current && !reel3Ref.current.innerHTML) {
-          reel3Ref.current.innerHTML = `<div class="reel-item">💌</div>`;
-      }
+    if (reel3Ref.current && !reel3Ref.current.innerHTML) {
+      reel3Ref.current.innerHTML = `<div class="reel-item">💌</div>`;
+    }
   }, []);
 
 
@@ -252,41 +265,41 @@ export default function App() {
   // Reel Logic
   const spinReel = (container: HTMLDivElement, items: string[], duration: number): Promise<string> => {
     return new Promise((resolve) => {
-      container.innerHTML = ''; 
-      
+      container.innerHTML = '';
+
       const strip = document.createElement('div');
       strip.className = 'reel-strip';
-      
+
       const targetIndex = Math.floor(Math.random() * items.length);
       const targetItem = items[targetIndex];
-      
-      const totalItems = 30; 
-      for(let i = 0; i < totalItems - 1; i++) {
+
+      const totalItems = 30;
+      for (let i = 0; i < totalItems - 1; i++) {
         const div = document.createElement('div');
         div.className = 'reel-item';
         div.innerText = items[Math.floor(Math.random() * items.length)];
         strip.appendChild(div);
       }
-      
+
       const targetDiv = document.createElement('div');
       targetDiv.className = 'reel-item';
       targetDiv.innerText = targetItem;
       strip.appendChild(targetDiv);
-      
+
       container.appendChild(strip);
-      
+
       strip.style.transform = `translateY(0px)`;
       void strip.offsetWidth; // Force reflow
-      
+
       container.classList.add('blur');
-      
+
       // Sonido de tictac mientras gira
       const tickInterval = setInterval(playTick, 100);
-      
+
       strip.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.85, 0.3, 1)`;
       const targetY = -((totalItems - 1) * REEL_HEIGHT);
       strip.style.transform = `translateY(${targetY}px)`;
-      
+
       setTimeout(() => {
         clearInterval(tickInterval);
         container.classList.remove('blur');
@@ -297,10 +310,10 @@ export default function App() {
 
   const handleSpin = async () => {
     if (!appData || appData[currentPlayer] <= 0 || isSpinning) return;
-    
+
     initAudio();
     setIsSpinning(true);
-    
+
     // Elegir arrays según modo
     const frases = isSpicy ? frasesPicantes : frasesRomanticas;
     let premios = isSpicy ? premiosPicantes : premiosRomanticos;
@@ -312,28 +325,28 @@ export default function App() {
     if (isSuperJackpot) {
       premios = superJackpots;
     }
-    
+
     if (!reel1Ref.current || !reel2Ref.current || !reel3Ref.current) return;
 
     const p1 = spinReel(reel1Ref.current, frases, 2000);
     const p2 = spinReel(reel2Ref.current, premios, 2500);
     const p3 = spinReel(reel3Ref.current, iconosSecretos, 3000);
-    
+
     const [resFrase, resPremio, resIcono] = await Promise.all([p1, p2, p3]);
-    
+
     vibrate();
     playWin(isSuperJackpot);
     fireConfetti();
-    
+
     // Guardar datos
     const newData = { ...appData };
     newData[currentPlayer] -= 1;
     saveAppData(newData);
     saveToHistory(resPremio, isSuperJackpot);
-    
+
     const arrayTareas = currentPlayer === 'Maira' ? tareasMaira : tareasMauri;
     const tareaSecreta = arrayTareas[Math.floor(Math.random() * arrayTareas.length)];
-    
+
     setTimeout(() => {
       setModalContent({
         title: isSuperJackpot ? `🏆 ¡SUPER JACKPOT, ${currentPlayer}! 🏆` : `¡Jackpot, ${currentPlayer}! 🎰`,
@@ -353,7 +366,7 @@ export default function App() {
     if (!appData) return;
     initAudio();
     const reto = retosSemanales[Math.floor(Math.random() * retosSemanales.length)];
-    
+
     const newData = { ...appData };
     newData.lastWeekly = new Date().toDateString();
     saveAppData(newData);
@@ -376,11 +389,11 @@ export default function App() {
   const getWeeklyButtonState = () => {
     if (!appData) return { disabled: true, text: "Cargando..." };
     if (!appData.lastWeekly) return { disabled: false, text: "🌟 Reto Semanal de Pareja 🌟" };
-    
+
     const lastW = new Date(appData.lastWeekly);
     const now = new Date();
     const diffDays = Math.ceil(Math.abs(now.getTime() - lastW.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 7) {
       return { disabled: true, text: `Reto Semanal (Disponible en ${7 - diffDays} días)` };
     }
@@ -395,16 +408,16 @@ export default function App() {
     <div className="container">
       {/* Header: Avatares y Racha */}
       <div className="header-stats">
-        <img 
-          src="https://api.dicebear.com/7.x/adventurer/svg?seed=Maira&backgroundColor=ff007f" 
-          className={`avatar ${currentPlayer === 'Maira' ? 'active' : ''}`} 
-          alt="Maira" 
+        <img
+          src="https://api.dicebear.com/7.x/adventurer/svg?seed=Maira&backgroundColor=ff007f"
+          className={`avatar ${currentPlayer === 'Maira' ? 'active' : ''}`}
+          alt="Maira"
         />
         <div className="streak-box">🔥 Racha: <span>{appData.streak}</span></div>
-        <img 
-          src="https://api.dicebear.com/7.x/adventurer/svg?seed=Mauri&backgroundColor=00e5ff" 
-          className={`avatar ${currentPlayer === 'Mauri' ? 'active' : ''}`} 
-          alt="Mauri" 
+        <img
+          src="https://api.dicebear.com/7.x/adventurer/svg?seed=Mauri&backgroundColor=00e5ff"
+          className={`avatar ${currentPlayer === 'Mauri' ? 'active' : ''}`}
+          alt="Mauri"
         />
       </div>
 
@@ -414,10 +427,10 @@ export default function App() {
         <div className="switch-container">
           <span>💖</span>
           <label className="switch">
-            <input 
-              type="checkbox" 
-              checked={isSpicy} 
-              onChange={(e) => setIsSpicy(e.target.checked)} 
+            <input
+              type="checkbox"
+              checked={isSpicy}
+              onChange={(e) => setIsSpicy(e.target.checked)}
             />
             <span className="slider"></span>
           </label>
@@ -427,14 +440,14 @@ export default function App() {
 
       {/* Selector de Jugador */}
       <div className="tabs">
-        <button 
-          className={`tab ${currentPlayer === 'Maira' ? 'active' : ''}`} 
+        <button
+          className={`tab ${currentPlayer === 'Maira' ? 'active' : ''}`}
           onClick={() => setPlayer('Maira')}
         >
           Maira
         </button>
-        <button 
-          className={`tab ${currentPlayer === 'Mauri' ? 'active' : ''}`} 
+        <button
+          className={`tab ${currentPlayer === 'Mauri' ? 'active' : ''}`}
           onClick={() => setPlayer('Mauri')}
         >
           Mauri
@@ -444,20 +457,20 @@ export default function App() {
       <div className="title">
         Slot de {currentPlayer}
       </div>
-      
+
       <div className="slot-machine">
         <div className="lights"></div>
-        
+
         <div className="reels-container">
           <div className="reel" ref={reel1Ref}></div>
           <div className="reel" ref={reel2Ref}></div>
           <div className="reel" id="reel3" ref={reel3Ref}></div>
         </div>
-        
+
         <div className="controls">
-          <button 
-            id="spin-btn" 
-            onClick={handleSpin} 
+          <button
+            id="spin-btn"
+            onClick={handleSpin}
             disabled={appData[currentPlayer] <= 0 || isSpinning}
           >
             {appData[currentPlayer] <= 0 ? "Vuelve mañana ❤️" : "TIRAR DE LA PALANCA"}
@@ -469,9 +482,9 @@ export default function App() {
       </div>
 
       {/* Reto Semanal */}
-      <button 
-        id="weekly-btn" 
-        onClick={handleWeeklyChallenge} 
+      <button
+        id="weekly-btn"
+        onClick={handleWeeklyChallenge}
         disabled={weeklyState.disabled}
       >
         {weeklyState.text}
@@ -484,18 +497,13 @@ export default function App() {
             <h2 className={modalContent.isSuper ? 'super-jackpot-title' : ''}>
               {modalContent.title}
             </h2>
-            
+
             <div>
-              <div className="res-box">
-                <small>Mensaje del destino:</small>
-                <div className="value">"{modalContent.frase}"</div>
-              </div>
-              
               <div className="res-box prize">
                 <small>Tu Premio:</small>
                 <div className="value">{modalContent.premio}</div>
               </div>
-              
+
               {modalContent.tarea && (
                 <div className="res-box secret">
                   <small>Misión Secreta hacia {modalContent.partner}:</small>
@@ -523,11 +531,11 @@ export default function App() {
             <h2>📜 Últimos Premios</h2>
             <div className="history-list">
               {appData.history.length === 0 ? (
-                <p style={{textAlign: 'center', color: '#888'}}>Aún no hay premios ganados.</p>
+                <p style={{ textAlign: 'center', color: '#888' }}>Aún no hay premios ganados.</p>
               ) : (
                 appData.history.map((item, idx) => (
                   <div key={idx} className="history-item">
-                    <small>{item.date} - <span>{item.player}</span></small><br/>
+                    <small>{item.date} - <span>{item.player}</span></small><br />
                     {item.desc}
                   </div>
                 ))
