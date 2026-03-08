@@ -205,9 +205,12 @@ export default function App() {
   // Audio Logic
   const initAudio = () => {
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextCtor) {
+        audioCtxRef.current = new AudioContextCtor();
+      }
     }
-    if (audioCtxRef.current.state === 'suspended') {
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
       audioCtxRef.current.resume();
     }
   };
@@ -288,7 +291,7 @@ export default function App() {
 
       container.appendChild(strip);
 
-      strip.style.transform = `translateY(0px)`;
+      strip.style.transform = `translate3d(0px, 0px, 0px)`;
       void strip.offsetWidth; // Force reflow
 
       container.classList.add('blur');
@@ -298,7 +301,7 @@ export default function App() {
 
       strip.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.85, 0.3, 1)`;
       const targetY = -((totalItems - 1) * REEL_HEIGHT);
-      strip.style.transform = `translateY(${targetY}px)`;
+      strip.style.transform = `translate3d(0px, ${targetY}px, 0px)`;
 
       setTimeout(() => {
         clearInterval(tickInterval);
