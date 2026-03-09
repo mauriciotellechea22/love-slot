@@ -6,7 +6,12 @@ import NavBar from './components/NavBar';
 import type { AppData } from './components/SlotView';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Firebase imports
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { db } from './firebase';
+
 const MAX_SPINS = 3;
+const ROOM_ID = 'pareja1'; // Hardcoded room for now
 
 const DEFAULT_MAIRA_AVATAR = "https://api.dicebear.com/7.x/adventurer/svg?seed=Maira&backgroundColor=ff007f";
 const DEFAULT_MAURI_AVATAR = "https://api.dicebear.com/7.x/adventurer/svg?seed=Mauri&backgroundColor=00e5ff";
@@ -15,45 +20,72 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'slots' | 'games' | 'notebook'>('slots');
   const [currentPlayer, setCurrentPlayer] = useState<'Maira' | 'Mauri'>('Maira');
   const [appData, setAppData] = useState<AppData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [showHistory, setShowHistory] = useState(false);
   const mairaInputRef = useRef<HTMLInputElement>(null);
   const mauriInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const data = localStorage.getItem('loveSlotDataV4');
-    const today = new Date().toDateString();
+    const roomRef = doc(db, 'rooms', ROOM_ID);
 
-    let parsed: AppData = data ? JSON.parse(data) : {
-      date: today, Maira: MAX_SPINS, Mauri: MAX_SPINS,
-      streak: 1, lastPlayDate: today, history: [], lastWeekly: null,
-      mairaCoins: 0, mauriCoins: 0,
-      mairaAvatar: DEFAULT_MAIRA_AVATAR,
-      mauriAvatar: DEFAULT_MAURI_AVATAR
-    };
+    const unsubscribe = onSnapshot(roomRef, async (docSnap) => {
+      const today = new Date().toDateString();
 
-    if (parsed.date !== today) {
-      const lastDate = new Date(parsed.date);
-      const currentDate = new Date(today);
-      const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (docSnap.exists()) {
+        const data = docSnap.data() as AppData;
+        let needsUpdate = false;
 
-      if (diffDays === 1) parsed.streak += 1;
-      else parsed.streak = 1;
+        // Daily reset logic
+        if (data.date !== today) {
+          const lastDate = new Date(data.date);
+          const currentDate = new Date(today);
+          const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      parsed.date = today;
-      parsed.Maira = MAX_SPINS;
-      parsed.Mauri = MAX_SPINS;
-    }
+          if (diffDays === 1) data.streak += 1;
+          else data.streak = 1;
 
-    // Migrations for old users
-    if (parsed.mairaCoins === undefined) parsed.mairaCoins = 0;
-    if (parsed.mauriCoins === undefined) parsed.mauriCoins = 0;
-    if (parsed.mairaAvatar === undefined) parsed.mairaAvatar = DEFAULT_MAIRA_AVATAR;
-    if (parsed.mauriAvatar === undefined) parsed.mauriAvatar = DEFAULT_MAURI_AVATAR;
+          data.date = today;
+          data.Maira = MAX_SPINS;
+          data.Mauri = MAX_SPINS;
+          needsUpdate = true;
+        }
 
-    setAppData(parsed);
-    localStorage.setItem('loveSlotDataV4', JSON.stringify(parsed));
+        // Migrations
+        if (data.mairaCoins === undefined) { data.mairaCoins = 0; needsUpdate = true; }
+        if (data.mauriCoins === undefined) { data.mauriCoins = 0; needsUpdate = true; }
+        if (data.mairaAvatar === undefined) { data.mairaAvatar = DEFAULT_MAIRA_AVATAR; needsUpdate = true; }
+        if (data.mauriAvatar === undefined) { data.mauriAvatar = DEFAULT_MAURI_AVATAR; needsUpdate = true; }
+
+        if (needsUpdate) {
+          await setDoc(roomRef, data, { merge: true });
+        } else {
+          setAppData(data);
+        }
+      } else {
+        // Init remote database if it doesn't exist
+        const initialData: AppData = {
+          date: today, Maira: MAX_SPINS, Mauri: MAX_SPINS,
+          streak: 1, lastPlayDate: today, history: [], lastWeekly: null,
+          mairaCoins: 0, mauriCoins: 0,
+          mairaAvatar: DEFAULT_MAIRA_AVATAR,
+          mauriAvatar: DEFAULT_MAURI_AVATAR
+        };
+        // Try reading from local storage once to migrate old data to cloud
+        const localData = localStorage.getItem('loveSlotDataV4');
+        const finalData = localData ? { ...initialData, ...JSON.parse(localData) } : initialData;
+
+        await setDoc(roomRef, finalData);
+        setAppData(finalData);
+      }
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Firebase sync error:", error);
+      setIsLoading(false); // At least let it load something, or show error
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -67,9 +99,12 @@ export default function App() {
     }
   }, [currentPlayer]);
 
-  const saveAppData = (newData: AppData) => {
+  const saveAppData = async (newData: AppData) => {
+    // Optimistic UI update
     setAppData(newData);
-    localStorage.setItem('loveSlotDataV4', JSON.stringify(newData));
+    // Sync to cloud
+    const roomRef = doc(db, 'rooms', ROOM_ID);
+    await setDoc(roomRef, newData, { merge: true });
   };
 
   const saveToHistory = (premio: string, mode: string, isSuper: boolean) => {
@@ -92,6 +127,13 @@ export default function App() {
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>, player: 'Maira' | 'Mauri') => {
     const file = e.target.files?.[0];
     if (!file || !appData) return;
+
+    // Check size limit (e.g. 500kb max for firestore document limits)
+    if (file.size > 500 * 1024) {
+      alert("La imagen es muy pesada. Trata de subir una foto de menos de 500KB.");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
@@ -102,6 +144,12 @@ export default function App() {
     };
     reader.readAsDataURL(file);
   };
+
+  if (isLoading) return <div className="loading-screen" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', flexDirection: 'column' }}>
+    <div className="spinner" style={{ fontSize: '3rem', animation: 'spin 1s linear infinite' }}>💖</div>
+    <p style={{ marginTop: '20px', fontWeight: 'bold' }}>Conectando celulares en 3, 2, 1...</p>
+    <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+  </div>;
 
   if (!appData) return null;
 
@@ -152,6 +200,7 @@ export default function App() {
             )}
             {activeTab === 'notebook' && (
               <motion.div key="notebook" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} transition={{ duration: 0.2 }} style={{ width: '100%' }}>
+                {/* Note: NotebookView will need to be refactored to read from Firestore subcollections or from appData */}
                 <NotebookView currentPlayer={currentPlayer} />
               </motion.div>
             )}

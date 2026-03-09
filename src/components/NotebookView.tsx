@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { AppData } from './SlotView';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
+const ROOM_ID = 'pareja1';
 
 type Note = {
     id: number;
@@ -17,13 +21,22 @@ export default function NotebookView({ currentPlayer }: NotebookProps) {
     const [draft, setDraft] = useState('');
 
     useEffect(() => {
-        const saved = localStorage.getItem('loveSlotNotes');
-        if (saved) {
-            setNotes(JSON.parse(saved));
-        }
+        const notesRef = doc(db, 'notes', ROOM_ID);
+        const unsubscribe = onSnapshot(notesRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                setNotes(docSnap.data().messages || []);
+            } else {
+                // Try to migrate local notes
+                const saved = localStorage.getItem('loveSlotNotes');
+                const initialNotes = saved ? JSON.parse(saved) : [];
+                await setDoc(notesRef, { messages: initialNotes });
+                setNotes(initialNotes);
+            }
+        });
+        return () => unsubscribe();
     }, []);
 
-    const saveNote = () => {
+    const saveNote = async () => {
         if (!draft.trim()) return;
         const newNote: Note = {
             id: Date.now(),
@@ -32,15 +45,17 @@ export default function NotebookView({ currentPlayer }: NotebookProps) {
             text: draft
         };
         const newNotes = [newNote, ...notes];
-        setNotes(newNotes);
-        localStorage.setItem('loveSlotNotes', JSON.stringify(newNotes));
+        setNotes(newNotes); // Optimistic UI update
+        const notesRef = doc(db, 'notes', ROOM_ID);
+        await setDoc(notesRef, { messages: newNotes }, { merge: true });
         setDraft('');
     };
 
-    const deleteNote = (id: number) => {
+    const deleteNote = async (id: number) => {
         const filtered = notes.filter(n => n.id !== id);
-        setNotes(filtered);
-        localStorage.setItem('loveSlotNotes', JSON.stringify(filtered));
+        setNotes(filtered); // Optimistic UI update
+        const notesRef = doc(db, 'notes', ROOM_ID);
+        await setDoc(notesRef, { messages: filtered }, { merge: true });
     };
 
     return (
