@@ -92,12 +92,16 @@ const iconosSecretos = ["🤫", "💌", "🎁", "💖", "🔐", "🔥", "😈", 
 
 const MAX_SPINS = 3;
 const REEL_HEIGHT = 55;
+const EXTREME_COST = 50;
+const SPIN_REWARD = 10;
 
 type Player = 'Maira' | 'Mauri';
 export type AppData = {
     date: string; Maira: number; Mauri: number; streak: number;
     lastPlayDate: string; history: Array<{ date: string; player: Player; desc: string }>;
     lastWeekly: string | null;
+    mairaCoins: number; mauriCoins: number;
+    mairaAvatar: string; mauriAvatar: string;
 };
 
 type Mode = 'romantico' | 'picante' | 'extremo';
@@ -112,7 +116,7 @@ type SlotViewProps = {
 export default function SlotView({ currentPlayer, appData, saveAppData, saveToHistory }: SlotViewProps) {
     const [mode, setMode] = useState<Mode>('romantico');
     const [isSpinning, setIsSpinning] = useState(false);
-    const [modalType, setModalType] = useState<'result' | null>(null);
+    const [modalType, setModalType] = useState<'result' | 'error' | null>(null);
     const [modalContent, setModalContent] = useState<any>(null);
     const [isSecretRevealed, setIsSecretRevealed] = useState(false);
 
@@ -194,6 +198,20 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
         });
     };
 
+    const playError = () => {
+        const ctx = audioCtxRef.current;
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.start(); osc.stop(ctx.currentTime + 0.2);
+    }
+
     const vibrate = () => {
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     };
@@ -234,7 +252,21 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
 
     const handleSpin = async () => {
         if (!appData || appData[currentPlayer] <= 0 || isSpinning) return;
-        initAudio(); setIsSpinning(true);
+        initAudio();
+
+        const currentCoins = currentPlayer === 'Maira' ? appData.mairaCoins : appData.mauriCoins;
+
+        if (mode === 'extremo' && currentCoins < EXTREME_COST) {
+            playError();
+            setModalContent({
+                title: "Fondos Insuficientes ❌",
+                desc: `Necesitas al menos ${EXTREME_COST} LoveCoins para jugar en Modo Extremo. ¡Juega a otros minijuegos o tira en el slot normal para ganar más monedas!`
+            });
+            setModalType('error');
+            return;
+        }
+
+        setIsSpinning(true);
 
         let frases = frasesRomanticas, premios = premiosRomanticos, arrMap = mode === 'romantico' ? tareasMairaRomanticas : (mode === 'picante' ? tareasMairaPicantes : tareasExtremasMaira);
         let arrMau = mode === 'romantico' ? tareasMauriRomanticas : (mode === 'picante' ? tareasMauriPicantes : tareasExtremasMauri);
@@ -255,6 +287,18 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
 
         const newData = { ...appData };
         newData[currentPlayer] -= 1;
+
+        // Economy Logic
+        let coinsEarned = 0;
+        if (mode === 'extremo') {
+            if (currentPlayer === 'Maira') newData.mairaCoins -= EXTREME_COST;
+            else newData.mauriCoins -= EXTREME_COST;
+        } else {
+            coinsEarned = SPIN_REWARD;
+            if (currentPlayer === 'Maira') newData.mairaCoins += SPIN_REWARD;
+            else newData.mauriCoins += SPIN_REWARD;
+        }
+
         saveAppData(newData);
         saveToHistory(resPremio, mode, isSuperJackpot);
 
@@ -267,7 +311,8 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
                 isSuper: isSuperJackpot,
                 premio: resPremio,
                 tarea: tareaSecreta,
-                partner: currentPlayer === 'Maira' ? 'Mauri' : 'Maira'
+                partner: currentPlayer === 'Maira' ? 'Mauri' : 'Maira',
+                coinsEarned: coinsEarned
             });
             setIsSecretRevealed(false);
             setModalType('result');
@@ -285,7 +330,7 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
         saveToHistory(`RETO: ${reto}`, 'romantico', false);
         playWin(true);
         setModalContent({
-            title: `🌟 ¡RETO SEMANAL! 🌟`, isSuper: true, premio: reto, tarea: null, partner: null
+            title: `🌟 ¡RETO SEMANAL! 🌟`, isSuper: true, premio: reto, tarea: null, partner: null, coinsEarned: 50
         });
         setModalType('result');
     };
@@ -299,6 +344,8 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
             </div>
 
             <div className="slot-machine mt">
+                {mode === 'extremo' && <div style={{ position: 'absolute', top: '-12px', right: '-12px', background: 'red', color: 'white', fontWeight: 'bold', padding: '5px 10px', borderRadius: '10px', fontSize: '0.8rem', zIndex: 10, boxShadow: '0 0 10px red' }}>Costo: {EXTREME_COST} LC</div>}
+
                 <div className="lights"></div>
                 <div className="reels-container">
                     <div className="reel" ref={reel1Ref}></div>
@@ -315,15 +362,32 @@ export default function SlotView({ currentPlayer, appData, saveAppData, saveToHi
 
             <button id="weekly-btn" onClick={handleWeeklyChallenge}>🌟 Reto Semanal 🌟</button>
 
+            {modalType === 'error' && modalContent && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ borderColor: 'red' }}>
+                        <h2 style={{ color: 'red', textShadow: 'none' }}>{modalContent.title}</h2>
+                        <p style={{ color: '#aaa', fontSize: '1.1rem', lineHeight: '1.4' }}>{modalContent.desc}</p>
+                        <button className="close-btn" style={{ background: 'red', boxShadow: 'none' }} onClick={() => setModalType(null)}>Entendido</button>
+                    </div>
+                </div>
+            )}
+
             {modalType === 'result' && modalContent && (
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <h2 className={modalContent.isSuper ? 'super-jackpot-title' : ''}>{modalContent.title}</h2>
                         <div>
+                            {modalContent.coinsEarned > 0 && (
+                                <div style={{ background: 'rgba(255,215,0,0.2)', padding: '5px', borderRadius: '10px', color: '#ffd700', fontWeight: 'bold', marginBottom: '15px' }}>
+                                    🪙 +{modalContent.coinsEarned} LoveCoins ganadas
+                                </div>
+                            )}
+
                             <div className="res-box prize">
                                 <small>Tu Premio:</small>
                                 <div className="value">{modalContent.premio}</div>
                             </div>
+
                             {modalContent.tarea && (
                                 <div className="res-box secret">
                                     <small>Misión hacia {modalContent.partner}:</small>

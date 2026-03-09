@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AppData } from './SlotView';
 
 // ==========================================
 // DATA DE LOS 10 JUEGOS
@@ -76,11 +77,18 @@ const TOKENS_CALIENTES = [
 // COMPONENTE PRINCIPAL
 // ==========================================
 
-export default function GamesView() {
+type GamesViewProps = {
+    appData: AppData;
+    currentPlayer: 'Maira' | 'Mauri';
+    saveAppData: (data: AppData) => void;
+};
+
+export default function GamesView({ appData, currentPlayer, saveAppData }: GamesViewProps) {
     const [activeGame, setActiveGame] = useState<string>('menu');
     const [cardText, setCardText] = useState("");
     const [subText, setSubText] = useState("");
     const [timer, setTimer] = useState<number | null>(null);
+    const [showCoinAnimation, setShowCoinAnimation] = useState(false);
 
     useEffect(() => {
         let interval: any;
@@ -101,29 +109,47 @@ export default function GamesView() {
 
     const getRand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
+    const rewardCoins = () => {
+        const newData = { ...appData };
+        if (currentPlayer === 'Maira') newData.mairaCoins += 5;
+        else newData.mauriCoins += 5;
+        saveAppData(newData);
+
+        setShowCoinAnimation(true);
+        setTimeout(() => setShowCoinAnimation(false), 1500);
+    };
+
     // Lógicas de Juegos
-    const nextTruth = () => setCardText(getRand(VERDAD_O_RETO));
-    const nextProbable = () => setCardText(getRand(QUIEN_ES_PROBABLE));
-    const nextNunca = () => setCardText(getRand(NUNCA_NUNCA));
-    const nextConexion = () => setCardText(getRand(PREGUNTAS_CONEXION));
-    const nextPrenda = () => setCardText(getRand(PRENDAS_RULETA));
-    const nextBeso = () => setCardText(getRand(RULETA_BESOS));
-    const nextToken = () => setCardText(getRand(TOKENS_CALIENTES));
-    const nextRoleplay = () => setCardText(getRand(ROLEPLAY_ESCENARIOS));
+    const nextTruth = () => { setCardText(getRand(VERDAD_O_RETO)); rewardCoins(); }
+    const nextProbable = () => { setCardText(getRand(QUIEN_ES_PROBABLE)); rewardCoins(); }
+    const nextNunca = () => { setCardText(getRand(NUNCA_NUNCA)); rewardCoins(); }
+    const nextConexion = () => { setCardText(getRand(PREGUNTAS_CONEXION)); rewardCoins(); }
+    const nextPrenda = () => { setCardText(getRand(PRENDAS_RULETA)); rewardCoins(); }
+    const nextBeso = () => { setCardText(getRand(RULETA_BESOS)); rewardCoins(); }
+    const nextToken = () => { setCardText(getRand(TOKENS_CALIENTES)); rewardCoins(); }
+    const nextRoleplay = () => { setCardText(getRand(ROLEPLAY_ESCENARIOS)); rewardCoins(); }
     const nextDados = () => {
         setCardText(`Acción: ${getRand(DADOS_SEXUALES_ACCION)}`);
         setSubText(`Dónde: ${getRand(DADOS_SEXUALES_CUERPO)}`);
+        rewardCoins();
     };
     const startMiradas = () => {
         setCardText("¡Parpadeaste o te reiste, pierdes! Tienes que quitarte una prenda.");
         setTimer(10); // Empieza en 10, pero es solo visual.
+        rewardCoins();
     };
-
 
     if (activeGame !== 'menu') {
         return (
-            <div className="game-screen">
-                <h2 style={{ color: 'white', marginBottom: '5px' }}>
+            <div className="game-screen" style={{ position: 'relative' }}>
+
+                {showCoinAnimation && (
+                    <div style={{ position: 'absolute', top: '-40px', right: '10px', fontSize: '1.2rem', fontWeight: 'bold', color: '#ffd700', animation: 'floatUp 1s ease-out forwards' }}>
+                        +5 🪙
+                    </div>
+                )}
+
+                <h2 style={{ color: 'white', marginBottom: '5px', textAlign: 'center' }}>
                     {activeGame === 'truth' && '🔥 Verdad o Reto'}
                     {activeGame === 'probable' && '👉 Más Probable'}
                     {activeGame === 'nunca' && '⛔ Yo Nunca Nunca'}
@@ -137,7 +163,7 @@ export default function GamesView() {
                 </h2>
 
                 {activeGame === 'miradas' && timer !== null ? (
-                    <div className="timer">{timer > 0 ? timer : "¡TIEMPO!"}</div>
+                    <div className="timer" style={{ fontSize: '3rem', fontWeight: '900', color: '#ff007f' }}>{timer > 0 ? timer : "¡TIEMPO!"}</div>
                 ) : null}
 
                 <div className={`game-card ${['conexion', 'probable', 'nunca'].includes(activeGame) ? 'soft-card' : ''}`}>
@@ -166,15 +192,15 @@ export default function GamesView() {
 
     return (
         <div className="games-menu">
-            <h2>Modo Juegos de Pareja</h2>
-            <p>Seleccionen uno de los 10 mini-juegos para empezar la noche.</p>
+            <h2 style={{ textAlign: 'center' }}>Juegos de Pareja</h2>
+            <p>Jugar otorga 5 LoveCoins por ronda.</p>
 
             <div className="game-list">
                 <button className="game-btn spicy" onClick={() => playGame('truth', nextTruth)}>
                     <span className="icon">😈</span> <div><h3>Verdad o Reto</h3><p>Clásico picante.</p></div>
                 </button>
                 <button className="game-btn fun" onClick={() => playGame('probable', nextProbable)}>
-                    <span className="icon">👉</span> <div><h3>¿Quién es más probable?</h3><p>Señala al culpable.</p></div>
+                    <span className="icon">👉</span> <div><h3>¿Quién es Probable?</h3><p>Señala al culpable.</p></div>
                 </button>
                 <button className="game-btn spicy" onClick={() => playGame('nunca', nextNunca)}>
                     <span className="icon">⛔</span> <div><h3>Yo Nunca Nunca</h3><p>Confesiones atrevidas.</p></div>
@@ -186,7 +212,7 @@ export default function GamesView() {
                     <span className="icon">👗</span> <div><h3>Ruleta de Prendas</h3><p>Striptease al azar.</p></div>
                 </button>
                 <button className="game-btn spicy" onClick={() => playGame('dados', nextDados)}>
-                    <span className="icon">🎲</span> <div><h3>Dados Sensuales</h3><p>Acción + Parte del cuerpo.</p></div>
+                    <span className="icon">🎲</span> <div><h3>Dados Sensuales</h3><p>Acción + Cuerpo.</p></div>
                 </button>
                 <button className="game-btn fun" onClick={() => playGame('roleplay', nextRoleplay)}>
                     <span className="icon">🎭</span> <div><h3>Roleplay Express</h3><p>Escenarios cortos.</p></div>
@@ -195,12 +221,19 @@ export default function GamesView() {
                     <span className="icon">💋</span> <div><h3>Ruleta de Besos</h3><p>Tipos de besos.</p></div>
                 </button>
                 <button className="game-btn fun" onClick={() => playGame('miradas', startMiradas)}>
-                    <span className="icon">👀</span> <div><h3>Reto de Miradas</h3><p>El que ríe se quita algo.</p></div>
+                    <span className="icon">👀</span> <div><h3>Reto de Miradas</h3><p>El que ríe pierde.</p></div>
                 </button>
                 <button className="game-btn spicy" onClick={() => playGame('tokens', nextToken)}>
-                    <span className="icon">🎟️</span> <div><h3>Cupones Calientes</h3><p>Saca un premio al azar.</p></div>
+                    <span className="icon">🎟️</span> <div><h3>Cupones Calientes</h3><p>Saca un vale sexual.</p></div>
                 </button>
             </div>
+
+            <style>{`
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+      `}</style>
         </div>
     );
 }
