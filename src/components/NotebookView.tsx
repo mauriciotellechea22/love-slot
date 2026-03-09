@@ -47,7 +47,11 @@ export default function NotebookView({ currentPlayer }: NotebookProps) {
         const newNotes = [newNote, ...notes];
         setNotes(newNotes); // Optimistic UI update
         const notesRef = doc(db, 'notes', ROOM_ID);
-        await setDoc(notesRef, { messages: newNotes }, { merge: true });
+        try {
+            await setDoc(notesRef, { messages: newNotes }, { merge: true });
+        } catch (e: any) {
+            alert("Error al guardar en la nube. Posible problema de permisos de Firebase: " + e.message);
+        }
         setDraft('');
     };
 
@@ -55,7 +59,11 @@ export default function NotebookView({ currentPlayer }: NotebookProps) {
         const filtered = notes.filter(n => n.id !== id);
         setNotes(filtered); // Optimistic UI update
         const notesRef = doc(db, 'notes', ROOM_ID);
-        await setDoc(notesRef, { messages: filtered }, { merge: true });
+        try {
+            await setDoc(notesRef, { messages: filtered }, { merge: true });
+        } catch (e: any) {
+            alert("Error de permisos en Firebase al borrar nota.");
+        }
     };
 
     return (

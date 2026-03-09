@@ -59,7 +59,12 @@ export default function App() {
         if (data.mauriAvatar === undefined) { data.mauriAvatar = DEFAULT_MAURI_AVATAR; needsUpdate = true; }
 
         if (needsUpdate) {
-          await setDoc(roomRef, data, { merge: true });
+          try {
+            await setDoc(roomRef, data, { merge: true });
+          } catch (e: any) {
+            console.error("Error setting doc update:", e);
+            alert("Error de permisos en Firebase al inicializar la base de datos.");
+          }
         } else {
           setAppData(data);
         }
@@ -76,7 +81,12 @@ export default function App() {
         const localData = localStorage.getItem('loveSlotDataV4');
         const finalData = localData ? { ...initialData, ...JSON.parse(localData) } : initialData;
 
-        await setDoc(roomRef, finalData);
+        try {
+          await setDoc(roomRef, finalData);
+        } catch (e: any) {
+          console.error("Error creating initial DB:", e);
+          alert("Error de Base de Datos. Es probable que debas configurar tus 'Reglas' de Firestore a 'Modo de prueba' o true.");
+        }
         setAppData(finalData);
       }
       setIsLoading(false);
@@ -104,7 +114,12 @@ export default function App() {
     setAppData(newData);
     // Sync to cloud
     const roomRef = doc(db, 'rooms', ROOM_ID);
-    await setDoc(roomRef, newData, { merge: true });
+    try {
+      await setDoc(roomRef, newData, { merge: true });
+    } catch (e: any) {
+      console.error(e);
+      alert("La base de datos de Firebase no permite guardar. Verifica las Reglas en Google Console.");
+    }
   };
 
   const saveToHistory = (premio: string, mode: string, isSuper: boolean) => {
